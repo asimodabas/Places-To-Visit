@@ -1,6 +1,7 @@
 package com.asimodabas.places_to_visit
 
 import android.Manifest
+import android.content.SharedPreferences
 import android.content.pm.PackageManager
 import android.location.Location
 import android.location.LocationListener
@@ -28,7 +29,9 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
     private lateinit var binding: ActivityMapsBinding
     private lateinit var locationManager: LocationManager
     private lateinit var locationListener: LocationListener
-    private lateinit var permissionLAuncher : ActivityResultLauncher<String>
+    private lateinit var sharedPreferences: SharedPreferences
+    private lateinit var permissionLAuncher: ActivityResultLauncher<String>
+    var trackBoolean: Boolean? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -42,6 +45,9 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
         mapFragment.getMapAsync(this)
 
         registerLauncher()
+        sharedPreferences =
+            this.getSharedPreferences("com.asimodabas.places_to_visit", MODE_PRIVATE)
+        trackBoolean = false
     }
 
     /*
@@ -55,44 +61,78 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
         mMap = googleMap
 
         locationManager = this.getSystemService(LOCATION_SERVICE) as LocationManager
+
         locationListener = object : LocationListener {
             override fun onLocationChanged(location: Location) {
-                println("location"+location.toString())
+
+                trackBoolean = sharedPreferences.getBoolean("trackBoolean",false)
+                if (trackBoolean == false){
+                    //println("location"+location.toString())
+                    val userLocation = LatLng(location.altitude, location.longitude)
+                    mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(userLocation, 15f))
+                    sharedPreferences.edit().putBoolean("trackBoolean",true)
+                }
             }
         }
 
         // permission will be taken
 
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+        if (ContextCompat.checkSelfPermission(
+                this,
+                Manifest.permission.ACCESS_FINE_LOCATION
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
 
-            if (ActivityCompat.shouldShowRequestPermissionRationale(this,Manifest.permission.ACCESS_FINE_LOCATION)){
+            if (ActivityCompat.shouldShowRequestPermissionRationale(
+                    this,
+                    Manifest.permission.ACCESS_FINE_LOCATION
+                )
+            ) {
 
-                Snackbar.make(binding.root,"Permission needed for location",Snackbar.LENGTH_INDEFINITE).setAction("Give permission"){
+                Snackbar.make(
+                    binding.root,
+                    "Permission needed for location",
+                    Snackbar.LENGTH_INDEFINITE
+                ).setAction("Give permission") {
                     //Request permission
                     permissionLAuncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
                 }.show()
-            }else{
+            } else {
                 //Request permission
                 permissionLAuncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
             }
-        }else{
+        } else {
             //Permission granted
             locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0f, locationListener)
-
+            val lastLocation = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER)
+            if (lastLocation != null) {
+                val lastUserLocation = LatLng(lastLocation.latitude, lastLocation.longitude)
+                mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(lastUserLocation, 16f))
+            }
+            mMap.isMyLocationEnabled = true
         }
     }
-    private fun registerLauncher(){
-        permissionLAuncher = registerForActivityResult(ActivityResultContracts.RequestPermission()){result ->
-            if (result){
-                if (ContextCompat.checkSelfPermission(this,Manifest.permission.ACCESS_FINE_LOCATION)==PackageManager.PERMISSION_GRANTED){
-                    //Permission granted
-                    locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0f, locationListener)
-                    }
-            }else{
-                //Permission denied
-                Toast.makeText(this@MapsActivity,"Permission needed",Toast.LENGTH_LONG).show()
 
+    private fun registerLauncher() {
+        permissionLAuncher =
+            registerForActivityResult(ActivityResultContracts.RequestPermission()) { result ->
+                if (result) {
+                    if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+                        //Permission granted
+                        locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0f, locationListener)
+                        val lastLocation =
+                            locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER)
+                        if (lastLocation != null) {
+                            val lastUserLocation = LatLng(lastLocation.latitude, lastLocation.longitude)
+                            mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(lastUserLocation, 16f))
+                        }
+                        mMap.isMyLocationEnabled = true
+                    }
+                } else {
+                    //Permission denied
+                    Toast.makeText(this@MapsActivity, "Permission needed", Toast.LENGTH_LONG).show()
+
+                }
             }
-        }
     }
 }
