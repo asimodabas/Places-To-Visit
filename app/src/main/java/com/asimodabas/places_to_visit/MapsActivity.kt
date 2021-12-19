@@ -45,18 +45,20 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
         mapFragment.getMapAsync(this)
 
         registerLauncher()
-        sharedPreferences =
-            this.getSharedPreferences("com.asimodabas.places_to_visit", MODE_PRIVATE)
+        sharedPreferences = this.getSharedPreferences("com.asimodabas.places_to_visit", MODE_PRIVATE)
         trackBoolean = false
     }
 
     /*
     Markantalya 36.89294589006185, 30.70433979916466
+
     // Add a marker in Markantalya and move the camera
     val martAntalya = LatLng(36.89294589006185, 30.70433979916466)
+
     mMap.addMarker(MarkerOptions().position(martAntalya).title("Markantalya"))
     mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(martAntalya,16f))
     */
+
     override fun onMapReady(googleMap: GoogleMap) {
         mMap = googleMap
 
@@ -69,31 +71,19 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
                 if (trackBoolean == false){
                     //println("location"+location.toString())
                     val userLocation = LatLng(location.altitude, location.longitude)
-                    mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(userLocation, 15f))
-                    sharedPreferences.edit().putBoolean("trackBoolean",true)
+                    mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(userLocation, 16f))
+                    sharedPreferences.edit().putBoolean("trackBoolean",true).apply()
                 }
             }
         }
 
         // permission will be taken
 
-        if (ContextCompat.checkSelfPermission(
-                this,
-                Manifest.permission.ACCESS_FINE_LOCATION
-            ) != PackageManager.PERMISSION_GRANTED
-        ) {
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
 
-            if (ActivityCompat.shouldShowRequestPermissionRationale(
-                    this,
-                    Manifest.permission.ACCESS_FINE_LOCATION
-                )
-            ) {
+            if (ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.ACCESS_FINE_LOCATION)) {
 
-                Snackbar.make(
-                    binding.root,
-                    "Permission needed for location",
-                    Snackbar.LENGTH_INDEFINITE
-                ).setAction("Give permission") {
+                Snackbar.make(binding.root, "Permission needed for location", Snackbar.LENGTH_INDEFINITE).setAction("Give permission") {
                     //Request permission
                     permissionLAuncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
                 }.show()
