@@ -52,6 +52,13 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback,GoogleMap.OnMapLong
 
         selectedLatitute = 0.0
         selectedLongitute = 0.0
+
+        binding.saveButton.setOnClickListener {
+            save()
+        }
+        binding.deleteButton.setOnClickListener {
+            delete()
+        }
     }
 
     /*
@@ -139,4 +146,13 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback,GoogleMap.OnMapLong
         selectedLatitute = p0.latitude
         selectedLongitute = p0.latitude
     }
+
+    fun save(){
+
+    }
+    fun delete(){
+
+    }
+
+
 }
