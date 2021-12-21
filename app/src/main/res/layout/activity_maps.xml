@@ -56,4 +56,16 @@
         map:layout_constraintHorizontal_bias="0.5"
         map:layout_constraintStart_toStartOf="parent"
         map:layout_constraintTop_toBottomOf="@+id/saveButton" />
+
+    <ImageView
+        android:id="@+id/imageView3"
+        android:layout_width="416dp"
+        android:layout_height="476dp"
+        map:layout_constraintBottom_toTopOf="@+id/placeText"
+        map:layout_constraintEnd_toEndOf="parent"
+        map:layout_constraintHorizontal_bias="0.5"
+        map:layout_constraintStart_toStartOf="parent"
+        map:layout_constraintTop_toTopOf="parent"
+        map:srcCompat="@drawable/adsz" />
+
 </androidx.constraintlayout.widget.ConstraintLayout>
