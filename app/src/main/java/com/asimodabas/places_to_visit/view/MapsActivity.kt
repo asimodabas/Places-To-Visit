@@ -1,4 +1,4 @@
-package com.asimodabas.places_to_visit
+package com.asimodabas.places_to_visit.view
 
 import android.Manifest
 import android.content.SharedPreferences
@@ -13,6 +13,8 @@ import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import androidx.room.Room
+import com.asimodabas.places_to_visit.R
 
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
@@ -21,9 +23,12 @@ import com.google.android.gms.maps.SupportMapFragment
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.MarkerOptions
 import com.asimodabas.places_to_visit.databinding.ActivityMapsBinding
+import com.asimodabas.places_to_visit.model.Place
+import com.asimodabas.places_to_visit.roomdb.PlaceDao
+import com.asimodabas.places_to_visit.roomdb.PlaceDatabase
 import com.google.android.material.snackbar.Snackbar
 
-class MapsActivity : AppCompatActivity(), OnMapReadyCallback,GoogleMap.OnMapLongClickListener {
+class MapsActivity : AppCompatActivity(), OnMapReadyCallback, GoogleMap.OnMapLongClickListener {
 
     private lateinit var mMap: GoogleMap
     private lateinit var binding: ActivityMapsBinding
@@ -32,8 +37,10 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback,GoogleMap.OnMapLong
     private lateinit var sharedPreferences: SharedPreferences
     private lateinit var permissionLAuncher: ActivityResultLauncher<String>
     private var trackBoolean: Boolean? = null
-    private var selectedLatitute : Double? = null
-    private var selectedLongitute : Double? = null
+    private var selectedLatitute: Double? = null
+    private var selectedLongitute: Double? = null
+    private lateinit var db: PlaceDatabase
+    private lateinit var placeDao: PlaceDao
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -47,11 +54,15 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback,GoogleMap.OnMapLong
         mapFragment.getMapAsync(this)
 
         registerLauncher()
-        sharedPreferences = this.getSharedPreferences("com.asimodabas.places_to_visit", MODE_PRIVATE)
+        sharedPreferences =
+            this.getSharedPreferences("com.asimodabas.places_to_visit", MODE_PRIVATE)
         trackBoolean = false
 
         selectedLatitute = 0.0
         selectedLongitute = 0.0
+
+        db = Room.databaseBuilder(applicationContext,PlaceDatabase::class.java,"Places").build()
+        placeDao = db.placeDao()
 
         binding.saveButton.setOnClickListener {
             save()
@@ -80,23 +91,35 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback,GoogleMap.OnMapLong
         locationListener = object : LocationListener {
             override fun onLocationChanged(location: Location) {
 
-                trackBoolean = sharedPreferences.getBoolean("trackBoolean",false)
-                if (trackBoolean == false){
+                trackBoolean = sharedPreferences.getBoolean("trackBoolean", false)
+                if (trackBoolean == false) {
                     //println("location"+location.toString())
                     val userLocation = LatLng(location.altitude, location.longitude)
                     mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(userLocation, 16f))
-                    sharedPreferences.edit().putBoolean("trackBoolean",true).apply()
+                    sharedPreferences.edit().putBoolean("trackBoolean", true).apply()
                 }
             }
         }
 
         // permission will be taken
 
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+        if (ContextCompat.checkSelfPermission(
+                this,
+                Manifest.permission.ACCESS_FINE_LOCATION
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
 
-            if (ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.ACCESS_FINE_LOCATION)) {
+            if (ActivityCompat.shouldShowRequestPermissionRationale(
+                    this,
+                    Manifest.permission.ACCESS_FINE_LOCATION
+                )
+            ) {
 
-                Snackbar.make(binding.root, "Permission needed for location", Snackbar.LENGTH_INDEFINITE).setAction("Give permission") {
+                Snackbar.make(
+                    binding.root,
+                    "Permission needed for location",
+                    Snackbar.LENGTH_INDEFINITE
+                ).setAction("Give permission") {
                     //Request permission
                     permissionLAuncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
                 }.show()
@@ -106,7 +129,12 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback,GoogleMap.OnMapLong
             }
         } else {
             //Permission granted
-            locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0f, locationListener)
+            locationManager.requestLocationUpdates(
+                LocationManager.GPS_PROVIDER,
+                0,
+                0f,
+                locationListener
+            )
             val lastLocation = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER)
             if (lastLocation != null) {
                 val lastUserLocation = LatLng(lastLocation.latitude, lastLocation.longitude)
@@ -120,14 +148,29 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback,GoogleMap.OnMapLong
         permissionLAuncher =
             registerForActivityResult(ActivityResultContracts.RequestPermission()) { result ->
                 if (result) {
-                    if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+                    if (ContextCompat.checkSelfPermission(
+                            this,
+                            Manifest.permission.ACCESS_FINE_LOCATION
+                        ) == PackageManager.PERMISSION_GRANTED
+                    ) {
                         //Permission granted
-                        locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0f, locationListener)
+                        locationManager.requestLocationUpdates(
+                            LocationManager.GPS_PROVIDER,
+                            0,
+                            0f,
+                            locationListener
+                        )
                         val lastLocation =
                             locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER)
                         if (lastLocation != null) {
-                            val lastUserLocation = LatLng(lastLocation.latitude, lastLocation.longitude)
-                            mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(lastUserLocation, 16f))
+                            val lastUserLocation =
+                                LatLng(lastLocation.latitude, lastLocation.longitude)
+                            mMap.moveCamera(
+                                CameraUpdateFactory.newLatLngZoom(
+                                    lastUserLocation,
+                                    16f
+                                )
+                            )
                         }
                         mMap.isMyLocationEnabled = true
                     }
@@ -147,10 +190,15 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback,GoogleMap.OnMapLong
         selectedLongitute = p0.latitude
     }
 
-    fun save(){
+    fun save() {
 
+        if (selectedLatitute != null && selectedLongitute != null) {
+            val place = Place(binding.placeText.text.toString(), selectedLatitute!!, selectedLongitute!!)
+            placeDao.insert(place)
+        }
     }
-    fun delete(){
+
+    fun delete() {
 
     }
 
