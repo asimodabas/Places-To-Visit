@@ -9,6 +9,7 @@ import android.location.LocationListener
 import android.location.LocationManager
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
+import android.view.View
 import android.widget.Toast
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
@@ -46,6 +47,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback, GoogleMap.OnMapLon
     private lateinit var db: PlaceDatabase
     private lateinit var placeDao: PlaceDao
     val compositeDisposable = CompositeDisposable()
+    var placeFromMain: Place? = null
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -60,6 +62,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback, GoogleMap.OnMapLon
         mapFragment.getMapAsync(this)
 
         registerLauncher()
+
         sharedPreferences =
             this.getSharedPreferences("com.asimodabas.places_to_visit", MODE_PRIVATE)
         trackBoolean = false
@@ -70,12 +73,16 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback, GoogleMap.OnMapLon
         db = Room.databaseBuilder(applicationContext, PlaceDatabase::class.java, "Places").build()
         placeDao = db.placeDao()
 
+
         binding.saveButton.setOnClickListener {
             save()
         }
         binding.deleteButton.setOnClickListener {
             delete()
         }
+
+        binding.saveButton.isEnabled = false
+
     }
 
     /*
@@ -92,62 +99,88 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback, GoogleMap.OnMapLon
         mMap = googleMap
         mMap.setOnMapLongClickListener(this)
 
-        locationManager = this.getSystemService(LOCATION_SERVICE) as LocationManager
+        val intent = intent
+        val info = intent.getStringExtra("info")
 
-        locationListener = object : LocationListener {
-            override fun onLocationChanged(location: Location) {
+        if (info == "new") {
 
-                trackBoolean = sharedPreferences.getBoolean("trackBoolean", false)
-                if (trackBoolean == false) {
-                    //println("location"+location.toString())
-                    val userLocation = LatLng(location.altitude, location.longitude)
-                    mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(userLocation, 16f))
-                    sharedPreferences.edit().putBoolean("trackBoolean", true).apply()
+            binding.saveButton.visibility = View.VISIBLE
+            binding.deleteButton.visibility = View.INVISIBLE
+
+            locationManager = this.getSystemService(LOCATION_SERVICE) as LocationManager
+
+            locationListener = object : LocationListener {
+                override fun onLocationChanged(location: Location) {
+
+                    trackBoolean = sharedPreferences.getBoolean("trackBoolean", false)
+                    if (trackBoolean == false) {
+                        //println("location"+location.toString())
+                        val userLocation = LatLng(location.altitude, location.longitude)
+                        mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(userLocation, 16f))
+                        sharedPreferences.edit().putBoolean("trackBoolean", true).apply()
+                    }
                 }
             }
-        }
 
-        // permission will be taken
+            // permission will be taken
 
-        if (ContextCompat.checkSelfPermission(
-                this,
-                Manifest.permission.ACCESS_FINE_LOCATION
-            ) != PackageManager.PERMISSION_GRANTED
-        ) {
-
-            if (ActivityCompat.shouldShowRequestPermissionRationale(
+            if (ContextCompat.checkSelfPermission(
                     this,
                     Manifest.permission.ACCESS_FINE_LOCATION
-                )
+                ) != PackageManager.PERMISSION_GRANTED
             ) {
 
-                Snackbar.make(
-                    binding.root,
-                    "Permission needed for location",
-                    Snackbar.LENGTH_INDEFINITE
-                ).setAction("Give permission") {
+                if (ActivityCompat.shouldShowRequestPermissionRationale(
+                        this,
+                        Manifest.permission.ACCESS_FINE_LOCATION
+                    )
+                ) {
+
+                    Snackbar.make(
+                        binding.root,
+                        "Permission needed for location",
+                        Snackbar.LENGTH_INDEFINITE
+                    ).setAction("Give permission") {
+                        //Request permission
+                        permissionLAuncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
+                    }.show()
+                } else {
                     //Request permission
                     permissionLAuncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
-                }.show()
+                }
             } else {
-                //Request permission
-                permissionLAuncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
+                //Permission granted
+                locationManager.requestLocationUpdates(
+                    LocationManager.GPS_PROVIDER,
+                    0,
+                    0f,
+                    locationListener
+                )
+                val lastLocation =
+                    locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER)
+                if (lastLocation != null) {
+                    val lastUserLocation = LatLng(lastLocation.latitude, lastLocation.longitude)
+                    mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(lastUserLocation, 16f))
+                }
+                mMap.isMyLocationEnabled = true
             }
         } else {
-            //Permission granted
-            locationManager.requestLocationUpdates(
-                LocationManager.GPS_PROVIDER,
-                0,
-                0f,
-                locationListener
-            )
-            val lastLocation = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER)
-            if (lastLocation != null) {
-                val lastUserLocation = LatLng(lastLocation.latitude, lastLocation.longitude)
-                mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(lastUserLocation, 16f))
+            mMap.clear()
+            placeFromMain = intent.getSerializableExtra("selectedPlace") as? Place
+
+            placeFromMain?.let {
+                val latLng = LatLng(it.latitude,it.longitude)
+
+                mMap.addMarker(MarkerOptions().position(latLng).title(it.name))
+                mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(latLng,12f))
+
+                binding.placeText.setText(it.name)
+                binding.saveButton.visibility = View.INVISIBLE
+                binding.deleteButton.visibility = View.VISIBLE
             }
-            mMap.isMyLocationEnabled = true
         }
+
+
     }
 
     private fun registerLauncher() {
@@ -156,27 +189,13 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback, GoogleMap.OnMapLon
                 if (result) {
                     if (ContextCompat.checkSelfPermission(
                             this,
-                            Manifest.permission.ACCESS_FINE_LOCATION
-                        ) == PackageManager.PERMISSION_GRANTED
-                    ) {
+                            Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
                         //Permission granted
-                        locationManager.requestLocationUpdates(
-                            LocationManager.GPS_PROVIDER,
-                            0,
-                            0f,
-                            locationListener
-                        )
-                        val lastLocation =
-                            locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER)
+                        locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0f, locationListener)
+                        val lastLocation = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER)
                         if (lastLocation != null) {
-                            val lastUserLocation =
-                                LatLng(lastLocation.latitude, lastLocation.longitude)
-                            mMap.moveCamera(
-                                CameraUpdateFactory.newLatLngZoom(
-                                    lastUserLocation,
-                                    16f
-                                )
-                            )
+                            val lastUserLocation = LatLng(lastLocation.latitude, lastLocation.longitude)
+                            mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(lastUserLocation, 16f))
                         }
                         mMap.isMyLocationEnabled = true
                     }
@@ -194,6 +213,8 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback, GoogleMap.OnMapLon
 
         selectedLatitute = p0.latitude
         selectedLongitute = p0.latitude
+
+        binding.saveButton.isEnabled = true
     }
 
     fun save() {
@@ -211,13 +232,21 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback, GoogleMap.OnMapLon
         }
     }
 
-    private fun handlerResponse(){
-        val intent = Intent(this,MainActivity::class.java)
+    private fun handlerResponse() {
+        val intent = Intent(this, MainActivity::class.java)
         intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
         startActivity(intent)
     }
 
     fun delete() {
+        placeFromMain.let {
+            compositeDisposable.add(
+                placeDao.delete(it!!)
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(this::handlerResponse)
+            )
+        }
 
     }
 
@@ -226,7 +255,6 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback, GoogleMap.OnMapLon
 
         compositeDisposable.clear()
     }
-
 
 
 }

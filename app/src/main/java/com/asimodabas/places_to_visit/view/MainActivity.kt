@@ -56,6 +56,7 @@ class MainActivity : AppCompatActivity() {
         if (item.itemId == R.id.add_place) {
             Toast.makeText(this, "Add Place", Toast.LENGTH_SHORT).show()
             val intent = Intent(this, MapsActivity::class.java)
+            intent.putExtra("info","new")
             startActivity(intent)
         }
         return super.onOptionsItemSelected(item)

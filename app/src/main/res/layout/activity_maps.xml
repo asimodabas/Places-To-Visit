@@ -22,12 +22,13 @@
     <EditText
         android:id="@+id/placeText"
         style="@style/MaterialAlertDialog.MaterialComponents.Title.Text.CenterStacked"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+        android:layout_width="201dp"
+        android:layout_height="65dp"
         android:layout_marginTop="10dp"
         android:ems="10"
         android:hint="Place Name"
         android:inputType="textPersonName"
+        android:textStyle="bold"
         map:layout_constraintEnd_toEndOf="parent"
         map:layout_constraintHorizontal_bias="0.5"
         map:layout_constraintStart_toStartOf="parent"
@@ -49,18 +50,19 @@
         android:id="@+id/deleteButton"
         android:layout_width="140dp"
         android:layout_height="45dp"
-        android:layout_marginTop="7dp"
+        android:layout_marginTop="40dp"
         android:backgroundTint="#000000"
         android:text="DELETE"
         map:layout_constraintEnd_toEndOf="parent"
-        map:layout_constraintHorizontal_bias="0.5"
+        map:layout_constraintHorizontal_bias="0.498"
         map:layout_constraintStart_toStartOf="parent"
-        map:layout_constraintTop_toBottomOf="@+id/saveButton" />
+        map:layout_constraintTop_toBottomOf="@+id/placeText" />
 
     <ImageView
         android:id="@+id/imageView3"
         android:layout_width="416dp"
         android:layout_height="476dp"
+        android:layout_marginTop="12dp"
         map:layout_constraintBottom_toTopOf="@+id/placeText"
         map:layout_constraintEnd_toEndOf="parent"
         map:layout_constraintHorizontal_bias="0.5"
