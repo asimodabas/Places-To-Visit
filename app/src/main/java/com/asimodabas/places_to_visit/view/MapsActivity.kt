@@ -63,8 +63,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback, GoogleMap.OnMapLon
 
         registerLauncher()
 
-        sharedPreferences =
-            this.getSharedPreferences("com.asimodabas.places_to_visit", MODE_PRIVATE)
+        sharedPreferences = this.getSharedPreferences("com.asimodabas.places_to_visit", MODE_PRIVATE)
         trackBoolean = false
 
         selectedLatitute = 0.0
@@ -212,7 +211,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback, GoogleMap.OnMapLon
         mMap.addMarker(MarkerOptions().position(p0))
 
         selectedLatitute = p0.latitude
-        selectedLongitute = p0.latitude
+        selectedLongitute = p0.longitude
 
         binding.saveButton.isEnabled = true
     }
